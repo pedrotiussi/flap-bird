@@ -4,8 +4,6 @@ import os
 import time
 import random
 pygame.font.init()
-global VEL
-VEL = 5
 
 
 WIDTH = 500
@@ -89,12 +87,11 @@ class Bird:
 
 class Pipe:
 	GAP = 200
-	
+	VEL = 5
 
 	def __init__(self, x):
 		self.x = x
 		self.height = 100
-		self.vel = VEL
 
 		self.top = 0
 		self.bottom = 0
@@ -111,7 +108,7 @@ class Pipe:
 
 
 	def move(self):
-		self.x -= self.vel
+		self.x -= self.VEL
 
 	def draw(self, win):
 		win.blit(self.PIPE_TOP, (self.x, self.top))
@@ -134,6 +131,7 @@ class Pipe:
 		return False
 
 class Base:
+	VEL = 5
 	WIDTH = BASE_IMG.get_width()
 	IMG = BASE_IMG
 
@@ -141,11 +139,10 @@ class Base:
 		self.y = y
 		self.x1 = 0
 		self.x2 = self.WIDTH
-		self.vel = VEL
 
 	def move(self):
-		self.x1 -= self.vel
-		self.x2 -= self.vel
+		self.x1 -= self.VEL
+		self.x2 -= self.VEL
 
 		if self.x1 + self.WIDTH < 0:
 			self.x1 = self.x2 + self.WIDTH
@@ -251,10 +248,6 @@ def main(genomes, config):
 				nets.pop(x)
 				ge.pop(x)
 				birds.pop(x)
-
-		if score % 10 == 0:
-			global VEL 
-			VEL += 1
 
 		base.move()
 		draw_window(win, birds, pipes, base, score)
