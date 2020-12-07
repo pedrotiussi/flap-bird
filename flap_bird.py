@@ -153,7 +153,23 @@ class Base:
 		win.blit(self.IMG, (self.x1, self.y))
 		win.blit(self.IMG, (self.x2, self.y))
 
-def draw_window(win, birds, pipes, base, score):
+class AIObject:
+	def __init__(self, net, ge, bird):
+		self.net = net
+		self.ge = ge
+		self.bird = bird
+
+	def update(self, pipe):
+		self.bird.move()
+		self.ge.fitness += 0.1
+		self.output = self.net.activate((self.bird.y, abs(self.bird.y - pipe.height), abs(self.bird.y - pipe.bottom)))
+		# activate((bird.y, abs(bird.y - pipes[pipe_ind].height), abs(bird.y - pipes[pipe_ind].botto
+
+		if self.output[0] > 0.5:
+			self.bird.jump()
+
+
+def draw_window(win, aiObjects, pipes, base, score):
     win.blit(BG_IMG, (0, 0))
     for pipe in pipes:
     	pipe.draw(win)
@@ -162,32 +178,35 @@ def draw_window(win, birds, pipes, base, score):
 
     win.blit(text, (WIDTH - 10 - text.get_width(), 10))
     base.draw(win)
-    for bird in birds:
-   		bird.draw(win)
+    for aiObject in aiObjects:
+   		aiObject.bird.draw(win)
     pygame.display.update()
 
 
 def main(genomes, config):
-	nets = []
-	ge = []
-	birds = []
+	aiObjects = []
+	# nets = []
+	# ge = []
+	# birds = []
 
-	for _,  g in genomes:
-		net = neat.nn.FeedForwardNetwork.create(g, config)
-		nets.append(net)
-		birds.append(Bird(230,350))
-		g.fitness = 0
-		ge.append(g)
+	for _,  ge in genomes:
+		# nets.append(net)
+		# birds.append(Bird(230,350))
+		# ge.append(g)
+		
+		net = neat.nn.FeedForwardNetwork.create(ge, config)
+		ge.fitness = 0
+		bird = Bird(230, 350)
+		aiObjects.append(AIObject(net, ge, bird))
 
 
 	base = Base(730)
 	pipes = [Pipe(600)]
 	win = pygame.display.set_mode((WIDTH, HEIGHT))
 	clock = pygame.time.Clock()
-
 	score = 0
-
 	run = True
+
 	while run:
 		clock.tick(30)
 		for event in pygame.event.get():
@@ -197,33 +216,23 @@ def main(genomes, config):
 				quit()
 
 		pipe_ind = 0
-		if len(birds) > 0:
-			if len(pipes) >1 and birds[0].x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
+		if len(aiObjects) > 0:
+			if len(pipes) > 1 and aiObjects[0].bird.x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
 				pipe_ind = 1
-
 		else:
 			run = False
 			break
 
-		for x, bird in enumerate(birds):
-			bird.move()
-			ge[x].fitness += 0.1
-
-			output = nets[x].activate((bird.y, abs(bird.y - pipes[pipe_ind].height), abs(bird.y - pipes[pipe_ind].bottom)))
-
-			if output[0] > 0.5:
-				bird.jump()
+		for aiObject in aiObjects:
+			aiObject.update(pipes[pipe_ind])
 
 		add_pipe = False 
 		rem = []
 		for pipe in pipes:
-			for x, bird in enumerate(birds):
-				if pipe.collide(bird, win):
-					ge[x].fitness -= 1
-					birds.pop(x)
-					nets.pop(x)
-					ge.pop(x)
-					
+			for aiObject in aiObjects:
+				if pipe.collide(aiObject.bird, win):
+					aiObject.ge.fitness -= 1
+					aiObjects.remove(aiObject)
 
 				if not pipe.passed and pipe.x < bird.x:
 					pipe.passed = True
@@ -233,23 +242,24 @@ def main(genomes, config):
 				rem.append(pipe)
 
 			pipe.move()
+
 		if add_pipe:
 			score += 1
-			for g in ge:
-				g.fitness += 5 
+			for aiObject in aiObjects:
+				aiObject.ge.fitness += 5 
 			pipes.append(Pipe(600))
 
 		for r in rem:
 			pipes.remove(r)
 
-		for x, bird in enumerate(birds):
-			if bird.y + bird.img.get_height() > 730 or bird.y < 0:
-				nets.pop(x)
-				ge.pop(x)
-				birds.pop(x)
+		# sky or floor
+		for aiObject in aiObjects:
+			if aiObject.bird.y + aiObject.bird.img.get_height() > 730 or aiObject.bird.y < 0:
+				aiObjects.remove(aiObject)
 
 		base.move()
-		draw_window(win, birds, pipes, base, score)
+
+		draw_window(win, aiObjects, pipes, base, score)
 
 
 def run(config_path):
