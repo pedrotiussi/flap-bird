@@ -3,6 +3,10 @@ import neat
 import os
 import time
 import random
+'''
+Flapy Bird is a game that made some success on 2014. On that python script an AI plays it.
+'''
+
 pygame.font.init()
 
 
@@ -182,22 +186,18 @@ def draw_window(win, aiObjects, pipes, base, score):
    		aiObject.bird.draw(win)
     pygame.display.update()
 
+def create_population(aiObjects, ge, config):
+	net = neat.nn.FeedForwardNetwork.create(ge, config)
+	ge.fitness = 0
+	bird = Bird(230, 350)
+	aiObjects.append(AIObject(net, ge, bird))
+
 
 def main(genomes, config):
 	aiObjects = []
-	# nets = []
-	# ge = []
-	# birds = []
 
 	for _,  ge in genomes:
-		# nets.append(net)
-		# birds.append(Bird(230,350))
-		# ge.append(g)
-		
-		net = neat.nn.FeedForwardNetwork.create(ge, config)
-		ge.fitness = 0
-		bird = Bird(230, 350)
-		aiObjects.append(AIObject(net, ge, bird))
+		create_population(aiObjects, ge, config)
 
 
 	base = Base(730)
@@ -234,7 +234,7 @@ def main(genomes, config):
 					aiObject.ge.fitness -= 1
 					aiObjects.remove(aiObject)
 
-				if not pipe.passed and pipe.x < bird.x:
+				if not pipe.passed and pipe.x < aiObject.bird.x:
 					pipe.passed = True
 					add_pipe = True
 
